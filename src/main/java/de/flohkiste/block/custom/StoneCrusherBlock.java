@@ -3,26 +3,25 @@ package de.flohkiste.block.custom;
 import com.mojang.serialization.MapCodec;
 import de.flohkiste.block.entity.BlockEntities;
 import de.flohkiste.block.entity.StoneCrusherBlockEntity;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockEntityProvider;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.HorizontalFacingBlock;
+import net.minecraft.block.*;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemPlacementContext;
+import net.minecraft.screen.NamedScreenHandlerFactory;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.state.property.DirectionProperty;
 import net.minecraft.state.property.Properties;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
+import net.minecraft.util.ItemScatterer;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
-public class StoneCrusherBlock extends HorizontalFacingBlock implements BlockEntityProvider {
+public class StoneCrusherBlock extends BlockWithEntity implements BlockEntityProvider {
     public static final DirectionProperty FACING = Properties.HORIZONTAL_FACING;
     public static final BooleanProperty LIT = Properties.LIT;
 
@@ -32,7 +31,7 @@ public class StoneCrusherBlock extends HorizontalFacingBlock implements BlockEnt
     }
 
     @Override
-    protected MapCodec<? extends HorizontalFacingBlock> getCodec() {
+    protected MapCodec<? extends StoneCrusherBlock> getCodec() {
         return null;
     }
 
@@ -47,6 +46,12 @@ public class StoneCrusherBlock extends HorizontalFacingBlock implements BlockEnt
         return this.getDefaultState().with(FACING, playerFacing).with(LIT, false);
     }
 
+    @Override
+    public BlockRenderType getRenderType(BlockState state) {
+        // With inheriting from BlockWithEntity this defaults to INVISIBLE, so we need to change that!
+        return BlockRenderType.MODEL;
+    }
+
     @Nullable
     @Override
     public BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
@@ -55,17 +60,27 @@ public class StoneCrusherBlock extends HorizontalFacingBlock implements BlockEnt
 
     @Override
     protected ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {
-        if(!world.isClient) {
-            BlockEntity blockEntity = world.getBlockEntity(pos);
-            if(blockEntity instanceof StoneCrusherBlockEntity exampleBlockEntity && player != null) {
-                if(!player.isSneaking()) {
-                    exampleBlockEntity.incrementCounter();
-                }
+        if (!world.isClient) {
+            NamedScreenHandlerFactory screenHandlerFactory = state.createScreenHandlerFactory(world, pos);
 
-                player.sendMessage(Text.of(exampleBlockEntity.getCounter() + ""), true);
+            if (screenHandlerFactory != null) {
+                player.openHandledScreen(screenHandlerFactory);
             }
         }
+        return ActionResult.SUCCESS;
+    }
 
-        return ActionResult.success(world.isClient);
+    // This method will drop all items onto the ground when the block is broken
+    @Override
+    public void onStateReplaced(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved) {
+        if (state.getBlock() != newState.getBlock()) {
+            BlockEntity blockEntity = world.getBlockEntity(pos);
+            if (blockEntity instanceof StoneCrusherBlockEntity stoneCrusherBlockEntity) {
+                ItemScatterer.spawn(world, pos, stoneCrusherBlockEntity);
+                // update comparators
+                world.updateComparators(pos,this);
+            }
+            super.onStateReplaced(state, world, pos, newState, moved);
+        }
     }
 }
