@@ -2,18 +2,24 @@ package de.flohkiste.block.custom;
 
 import com.mojang.serialization.MapCodec;
 import de.flohkiste.block.entity.BlockEntities;
+import de.flohkiste.block.entity.StoneCrusherBlockEntity;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockEntityProvider;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.HorizontalFacingBlock;
 import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.state.property.DirectionProperty;
 import net.minecraft.state.property.Properties;
+import net.minecraft.text.Text;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
 public class StoneCrusherBlock extends HorizontalFacingBlock implements BlockEntityProvider {
@@ -45,5 +51,21 @@ public class StoneCrusherBlock extends HorizontalFacingBlock implements BlockEnt
     @Override
     public BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
         return BlockEntities.STONE_CRUSHER_BLOCK_ENTITY.instantiate(pos, state);
+    }
+
+    @Override
+    protected ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {
+        if(!world.isClient) {
+            BlockEntity blockEntity = world.getBlockEntity(pos);
+            if(blockEntity instanceof StoneCrusherBlockEntity exampleBlockEntity && player != null) {
+                if(!player.isSneaking()) {
+                    exampleBlockEntity.incrementCounter();
+                }
+
+                player.sendMessage(Text.of(exampleBlockEntity.getCounter() + ""), true);
+            }
+        }
+
+        return ActionResult.success(world.isClient);
     }
 }
