@@ -4,7 +4,10 @@ import com.mojang.serialization.MapCodec;
 import de.flohkiste.block.entity.BlockEntities;
 import de.flohkiste.block.entity.StoneCrusherBlockEntity;
 import net.minecraft.block.*;
+import net.minecraft.block.entity.AbstractFurnaceBlockEntity;
 import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.BlockEntityTicker;
+import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.screen.NamedScreenHandlerFactory;
@@ -83,4 +86,10 @@ public class StoneCrusherBlock extends BlockWithEntity implements BlockEntityPro
             super.onStateReplaced(state, world, pos, newState, moved);
         }
     }
+
+    @Nullable
+    protected static <T extends BlockEntity> BlockEntityTicker<T> validateTicker(World world, BlockEntityType<T> givenType, BlockEntityType<StoneCrusherBlockEntity> expectedType) {
+        return world.isClient ? null : validateTicker(givenType, expectedType, StoneCrusherBlockEntity::tick);
+    }
+
 }

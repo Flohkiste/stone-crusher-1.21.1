@@ -2,6 +2,7 @@ package de.flohkiste.screen;
 
 
 import de.flohkiste.StoneCrusher;
+import de.flohkiste.block.entity.StoneCrusherBlockEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.Inventory;
@@ -13,9 +14,6 @@ import net.minecraft.screen.slot.Slot;
 
 public class StoneCrusherScreenHandler extends ScreenHandler {
     private final Inventory inventory;
-    public final int INPUT_SLOT = 0;
-    public final int FUEL_SLOT = 1;
-    public final int OUTPUT_SLOT = 2;
 
     public StoneCrusherScreenHandler(int syncId, Inventory inventory) {
         this(syncId, (PlayerInventory) inventory, new SimpleInventory(3));
@@ -38,9 +36,9 @@ public class StoneCrusherScreenHandler extends ScreenHandler {
                 this.addSlot(new Slot(inventory, l + m * 3, 62 + l * 18, 17 + m * 18));
             }
         }*/
-        this.addSlot(new Slot(inventory, INPUT_SLOT, 56, 17));
-        this.addSlot(new Slot(inventory, FUEL_SLOT, 56, 53));
-        this.addSlot(new FurnaceOutputSlot(playerInventory.player, inventory, OUTPUT_SLOT, 116, 35));
+        this.addSlot(new Slot(inventory, StoneCrusherBlockEntity.INPUT_SLOT, 56, 17));
+        this.addSlot(new Slot(inventory, StoneCrusherBlockEntity.FUEL_SLOT, 56, 53));
+        this.addSlot(new FurnaceOutputSlot(playerInventory.player, inventory, StoneCrusherBlockEntity.OUTPUT_SLOT, 116, 35));
 
 
         // The player inventory
