@@ -1,17 +1,22 @@
 package de.flohkiste.block.custom;
 
 import com.mojang.serialization.MapCodec;
+import de.flohkiste.block.entity.BlockEntities;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockEntityProvider;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.HorizontalFacingBlock;
+import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.state.property.DirectionProperty;
 import net.minecraft.state.property.Properties;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import org.jetbrains.annotations.Nullable;
 
-public class StoneCrusherBlock extends HorizontalFacingBlock {
+public class StoneCrusherBlock extends HorizontalFacingBlock implements BlockEntityProvider {
     public static final DirectionProperty FACING = Properties.HORIZONTAL_FACING;
     public static final BooleanProperty LIT = Properties.LIT;
 
@@ -34,5 +39,11 @@ public class StoneCrusherBlock extends HorizontalFacingBlock {
     public BlockState getPlacementState(ItemPlacementContext ctx) {
         Direction playerFacing = ctx.getHorizontalPlayerFacing().getOpposite();
         return this.getDefaultState().with(FACING, playerFacing).with(LIT, false);
+    }
+
+    @Nullable
+    @Override
+    public BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
+        return BlockEntities.STONE_CRUSHER_BLOCK_ENTITY.instantiate(pos, state);
     }
 }

@@ -1,6 +1,7 @@
 package de.flohkiste;
 
 import de.flohkiste.block.ModBlocks;
+import de.flohkiste.block.entity.BlockEntities;
 import net.fabricmc.api.ModInitializer;
 
 import org.slf4j.Logger;
@@ -18,5 +19,6 @@ public class StoneCrusher implements ModInitializer {
 	public void onInitialize() {
 		LOGGER.info("Initializing " + MOD_ID);
 		ModBlocks.registerModBlocks();
+		BlockEntities.registerModBlocks();
 	}
 }
