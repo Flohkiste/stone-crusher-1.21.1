@@ -18,6 +18,9 @@
 		"main": [
 			"de.flohkiste.StoneCrusher"
 		],
+		"client": [
+			"de.flohkiste.StoneCrusherClient"
+		],
 		"fabric-datagen": [
 			"de.flohkiste.StoneCrusherDataGenerator"
 		]
