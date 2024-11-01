@@ -11,6 +11,7 @@ import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.Inventories;
+import net.minecraft.inventory.SidedInventory;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -24,13 +25,15 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
+import java.util.stream.IntStream;
 
-public class StoneCrusherBlockEntity extends BlockEntity implements NamedScreenHandlerFactory, ImplementedInventory{
+public class StoneCrusherBlockEntity extends BlockEntity implements NamedScreenHandlerFactory, ImplementedInventory, SidedInventory {
     private final DefaultedList<ItemStack> inventory = DefaultedList.ofSize(3, ItemStack.EMPTY);
     public static final int INPUT_SLOT = 0;
     public static final int FUEL_SLOT = 1;
@@ -237,4 +240,28 @@ public class StoneCrusherBlockEntity extends BlockEntity implements NamedScreenH
         return this.burnTime > 0;
     }
 
+    @Override
+    public int[] getAvailableSlots(Direction side) {
+        return IntStream.range(0, getItems().size()).toArray();
+    }
+
+    @Override
+    public boolean canInsert(int slot, ItemStack stack, @Nullable Direction dir) {
+        if (dir == Direction.UP) {
+            return slot == INPUT_SLOT;
+        } else {
+            return slot == FUEL_SLOT;
+        }
+
+
+        //return false;
+    }
+
+    @Override
+    public boolean canExtract(int slot, ItemStack stack, Direction dir) {
+        if (slot == OUTPUT_SLOT) {
+            return true;
+        }
+        return false;
+    }
 }
