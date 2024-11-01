@@ -250,7 +250,7 @@ public class StoneCrusherBlockEntity extends BlockEntity implements NamedScreenH
         if (dir == Direction.UP) {
             return slot == INPUT_SLOT;
         } else {
-            return slot == FUEL_SLOT;
+            return slot == FUEL_SLOT && getFuelTime(stack) != 0;
         }
 
 
