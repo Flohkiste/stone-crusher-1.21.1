@@ -1,5 +1,6 @@
 package de.flohkiste.block.entity;
 
+import de.flohkiste.StoneCrusher;
 import de.flohkiste.block.custom.StoneCrusherBlock;
 import de.flohkiste.screen.StoneCrusherScreenHandler;
 import net.minecraft.block.BlockState;
@@ -17,11 +18,13 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.screen.NamedScreenHandlerFactory;
+import net.minecraft.screen.PropertyDelegate;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
@@ -32,11 +35,38 @@ public class StoneCrusherBlockEntity extends BlockEntity implements NamedScreenH
     public static final int INPUT_SLOT = 0;
     public static final int FUEL_SLOT = 1;
     public static final int OUTPUT_SLOT = 2;
-    int burnTime;
-    int fuelTime;
-    int crushTime;
-    int crushTimeTotal;
+    int burnTime = 0;
+    int fuelTime = 0;
+    int crushTime = 0;
+    int crushTimeTotal = 100;
+    private final PropertyDelegate propertyDelegate = new PropertyDelegate() {
+        @Override
+        public int get(int index) {
+            return switch (index) {
+                case 0 -> StoneCrusherBlockEntity.this.burnTime;
+                case 1 -> StoneCrusherBlockEntity.this.fuelTime;
+                case 2 -> StoneCrusherBlockEntity.this.crushTime;
+                case 3 -> StoneCrusherBlockEntity.this.crushTimeTotal;
+                default -> 0;
+            };
+        }
 
+        @Override
+        public void set(int index, int value) {
+            switch (index) {
+                case 0 -> StoneCrusherBlockEntity.this.burnTime = value;
+                case 1 -> StoneCrusherBlockEntity.this.fuelTime = value;
+                case 2 -> StoneCrusherBlockEntity.this.crushTime = value;
+                case 3 -> StoneCrusherBlockEntity.this.crushTimeTotal = value;
+            }
+
+        }
+
+        @Override
+        public int size() {
+            return 4;
+        }
+    };
 
     public StoneCrusherBlockEntity(BlockPos pos, BlockState state) {
         super(BlockEntities.STONE_CRUSHER_BLOCK_ENTITY, pos, state);
@@ -67,68 +97,134 @@ public class StoneCrusherBlockEntity extends BlockEntity implements NamedScreenH
     @Nullable
     @Override
     public ScreenHandler createMenu(int syncId, PlayerInventory playerInventory, PlayerEntity player) {
-        return new StoneCrusherScreenHandler(syncId, playerInventory, this);
+        return new StoneCrusherScreenHandler(syncId, playerInventory, this, this.propertyDelegate);
     }
 
-    public static void tick(World world, BlockPos blockPos, BlockState state, StoneCrusherBlockEntity blockEntity) {
-        boolean isBurning = blockEntity.isBurning();
-        boolean isDirty = false;
+    public static void tick(World world, BlockPos pos, BlockState state, StoneCrusherBlockEntity blockEntity) {
 
-        if (isBurning) {
-            --blockEntity.burnTime;
+        /*ItemStack inputItems = blockEntity.inventory.get(INPUT_SLOT);
+        if (!inputItems.isEmpty()) {
+            blockEntity.crushTime ++;
+            if (blockEntity.crushTime >= blockEntity.crushTimeTotal) {
+                blockEntity.crushTime = 0;
+                inputItems.decrement(1);
+                ItemStack outputItems = blockEntity.inventory.get(OUTPUT_SLOT);
+
+                if (outputItems.isEmpty()) {
+                   outputItems = blockEntity.inventory.set(OUTPUT_SLOT, new ItemStack(Items.SAND, 1));
+                } else {
+                    outputItems.increment(1);
+                }
+
+                blockEntity.inventory.set(OUTPUT_SLOT, outputItems);
+
+            }
+        }*/
+        boolean isDirty = false;
+        boolean isBurning = blockEntity.isBurning();
+
+        if (blockEntity.isBurning()) {
+            -- blockEntity.burnTime;
         }
 
-        ItemStack fuelItemStack = blockEntity.inventory.get(StoneCrusherBlockEntity.FUEL_SLOT);
-        ItemStack inputItemStack = blockEntity.inventory.get(StoneCrusherBlockEntity.INPUT_SLOT);
-        ItemStack outputItemStack = blockEntity.inventory.get(StoneCrusherBlockEntity.OUTPUT_SLOT);
+        ItemStack inputItems = blockEntity.inventory.get(INPUT_SLOT);
+        ItemStack fuelItems = blockEntity.inventory.get(FUEL_SLOT);
+        ItemStack outputItems = blockEntity.inventory.get(OUTPUT_SLOT);
 
-        if (isBurning || (!fuelItemStack.isEmpty() && !inputItemStack.isEmpty())) {
-            if (!isBurning && canUseAsFuel(fuelItemStack)) {
-                blockEntity.burnTime = getFuelTime(fuelItemStack);
-                blockEntity.fuelTime = blockEntity.burnTime;
+        boolean isInputEmpty = inputItems.isEmpty();
+        boolean isFuelEmpty = fuelItems.isEmpty();
 
-                if (blockEntity.isBurning()) {
-                    isDirty = true;
-                    if (!fuelItemStack.isEmpty()) {
-                        fuelItemStack.decrement(1);
-                    }
-                }
+
+        if (blockEntity.isBurning() || !isInputEmpty && !isFuelEmpty) {
+            if (!blockEntity.isBurning() && isValidRecipe(inputItems, outputItems)) {
+                isDirty = true;
+                blockEntity.burnFuel();
             }
 
-            if (isBurning && canUseAsInput(inputItemStack)) {
-                ++blockEntity.crushTime;
+            if (blockEntity.isBurning() && isValidRecipe(inputItems, outputItems)) {
+                ++ blockEntity.crushTime;
                 if (blockEntity.crushTime >= blockEntity.crushTimeTotal) {
-                    blockEntity.crushTime = 0;
-                    blockEntity.crushTimeTotal = 200;
-                    processRecipe(inputItemStack, outputItemStack);
+                    blockEntity.crush();
                     isDirty = true;
                 }
             } else {
                 blockEntity.crushTime = 0;
             }
+        } else if(!blockEntity.isBurning() && blockEntity.crushTime > 0) {
+            blockEntity.crushTime = MathHelper.clamp(blockEntity.crushTime - 2, 0, blockEntity.crushTimeTotal);
         }
 
         if (isBurning != blockEntity.isBurning()) {
             isDirty = true;
-            state = state.with(StoneCrusherBlock.LIT, blockEntity.isBurning());
-            world.setBlockState(blockPos, state, 3);
+            state = (BlockState) state.with(StoneCrusherBlock.LIT, blockEntity.isBurning());
+            world.setBlockState(pos, state, 3);
         }
 
         if (isDirty) {
-            markDirty(world, blockPos, state);
+            blockEntity.markDirty();
         }
+
     }
 
-    private static void processRecipe(ItemStack inputItemStack, ItemStack outputItemStack) {
-        Item outputItem = getOutputItem(inputItemStack);
-        if (outputItemStack.isEmpty()) {
-            outputItemStack = new ItemStack(outputItem, 1);
+    private void crush() {
+        crushTime = 0;
+        ItemStack inputItems = inventory.get(INPUT_SLOT);
+        ItemStack outputItems = inventory.get(OUTPUT_SLOT);
+
+        if (outputItems.isEmpty()) {
+            outputItems = new ItemStack(getRecipeOutput(inputItems), 1);
         } else {
-            outputItemStack.increment(1);
+            outputItems.increment(1);
+        }
+
+        inputItems.decrement(1);
+
+        inventory.set(INPUT_SLOT, inputItems);
+        inventory.set(OUTPUT_SLOT, outputItems);
+    }
+
+    private void burnFuel() {
+        ItemStack fuelItems = inventory.get(FUEL_SLOT);
+        this.fuelTime = getFuelTime(fuelItems);
+        this.burnTime = this.fuelTime;
+        fuelItems.decrement(1);
+        inventory.set(FUEL_SLOT, fuelItems);
+    }
+
+    private static boolean isValidRecipe(ItemStack inputItems, ItemStack outputItems) {
+        return canAcceptRecipeOutput(inputItems, outputItems) && getRecipeOutput(inputItems) != Items.AIR;
+    }
+
+    private static boolean canAcceptRecipeOutput(ItemStack inputItems, ItemStack outputItems) {
+        if (outputItems.isEmpty()) {
+            return true;
+        }
+
+        if (outputItems.getCount() + 1 > outputItems.getMaxCount()){
+            return false;
+        }
+
+        if (getRecipeOutput(inputItems) != outputItems.getItem()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public static Item getRecipeOutput(ItemStack inputItems) {
+        Item inputItem = inputItems.getItem();
+        if (inputItem == Items.STONE) {
+            return Items.COBBLESTONE;
+        } else if (inputItem == Items.COBBLESTONE) {
+            return Items.GRAVEL;
+        } else if (inputItem == Items.GRAVEL) {
+            return Items.SAND;
+        } else {
+            return Items.AIR;
         }
     }
 
-    private static int getFuelTime(ItemStack fuel) {
+    private int getFuelTime(ItemStack fuel) {
         if (fuel.isEmpty()) {
             return 0;
         } else {
@@ -137,54 +233,8 @@ public class StoneCrusherBlockEntity extends BlockEntity implements NamedScreenH
         }
     }
 
-    private static boolean canAcceptRecipeOutput(ItemStack inputItemStack, ItemStack ouputItemStack) {
-        if (ouputItemStack.isEmpty()) {
-            return true;
-        }
-
-        if (getOutputItem(inputItemStack) != ouputItemStack.getItem()) {
-            return false;
-        }
-
-        if (ouputItemStack.getCount() + 1 > ouputItemStack.getMaxCount()){
-            return false;
-        }
-
-        return true;
-    }
-
-    private static boolean isValidRecipe(ItemStack fuelItemStack, ItemStack inputItemStack) {
-        return canUseAsFuel(fuelItemStack) && canUseAsInput(inputItemStack);
-    }
-
-    private static boolean canUseAsInput(ItemStack inputItemStack) {
-        Item item = inputItemStack.getItem();
-        if (item == Items.COBBLESTONE || item == Items.STONE || item == Items.GRAVEL) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    private static Item getOutputItem(ItemStack inputItemStack) {
-        Item item = inputItemStack.getItem();
-        if (item == Items.COBBLESTONE) {
-            return Items.GRAVEL;
-        } else if (item == Items.STONE) {
-            return Items.COBBLESTONE;
-        } else if (item == Items.GRAVEL) {
-            return Items.SAND;
-        } else {
-            return Items.AIR;
-        }
-    }
-
-    private static boolean canUseAsFuel(ItemStack fuelItemStack) {
-        return AbstractFurnaceBlockEntity.canUseAsFuel(fuelItemStack);
-    }
-
-
     private boolean isBurning() {
         return this.burnTime > 0;
     }
+
 }

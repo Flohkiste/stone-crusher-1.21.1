@@ -92,4 +92,9 @@ public class StoneCrusherBlock extends BlockWithEntity implements BlockEntityPro
         return world.isClient ? null : validateTicker(givenType, expectedType, StoneCrusherBlockEntity::tick);
     }
 
+    @Nullable
+    @Override
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(World world, BlockState state, BlockEntityType<T> type) {
+        return world.isClient ? null : validateTicker(world, type, BlockEntities.STONE_CRUSHER_BLOCK_ENTITY);
+    }
 }
