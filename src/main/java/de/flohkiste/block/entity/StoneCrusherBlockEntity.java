@@ -12,6 +12,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.Inventories;
 import net.minecraft.inventory.SidedInventory;
+import net.minecraft.item.FuelRegistry;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -231,9 +232,12 @@ public class StoneCrusherBlockEntity extends BlockEntity implements NamedScreenH
         if (fuel.isEmpty()) {
             return 0;
         } else {
-            Item item = fuel.getItem();
-            return (Integer)AbstractFurnaceBlockEntity.createFuelTimeMap().getOrDefault(item, 0);
+            return getFuelTime(world.getFuelRegistry(), fuel);
         }
+    }
+
+    protected int getFuelTime(FuelRegistry fuelRegistry, ItemStack stack) {
+        return fuelRegistry.getFuelTicks(stack);
     }
 
     private boolean isBurning() {

@@ -3,6 +3,7 @@ package de.flohkiste.block.entity;
 import de.flohkiste.StoneCrusher;
 import de.flohkiste.block.ModBlocks;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
+import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.item.ItemGroups;
@@ -11,7 +12,7 @@ import net.minecraft.registry.Registry;
 import net.minecraft.util.Identifier;
 
 public class BlockEntities {
-    public static final BlockEntityType<StoneCrusherBlockEntity> STONE_CRUSHER_BLOCK_ENTITY = register("stone_crusher_block_entity", BlockEntityType.Builder.create(StoneCrusherBlockEntity::new, ModBlocks.STONE_CRUSHER).build(null));
+    public static final BlockEntityType<StoneCrusherBlockEntity> STONE_CRUSHER_BLOCK_ENTITY = register("stone_crusher_block_entity", FabricBlockEntityTypeBuilder.create(StoneCrusherBlockEntity::new, ModBlocks.STONE_CRUSHER).build(null));
 
     public static void registerModBlocks() {
         StoneCrusher.LOGGER.info("Registering Mod Block Entities for " + StoneCrusher.MOD_ID);
